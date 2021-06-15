@@ -40,12 +40,12 @@ func initPortalService() {
 	go func() {
 		for {
 			func() {
+				response, err := http.Get("https://api.blockcypher.com/v1/btc/main")
 				feeRWLock.Lock()
 				defer func() {
 					feeRWLock.Unlock()
 					time.Sleep(1 * time.Minute)
 				}()
-				response, err := http.Get("https://api.blockcypher.com/v1/btc/main")
 				if err != nil {
 					feePerVByte = -1
 					return
