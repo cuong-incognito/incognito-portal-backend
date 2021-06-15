@@ -3,6 +3,7 @@ module main
 go 1.13
 
 require (
+	github.com/btcsuite/btcd v0.22.0-beta
 	github.com/gin-contrib/gzip v0.0.3
 	github.com/gin-gonic/gin v1.6.3
 	github.com/golang/protobuf v1.4.2 // indirect

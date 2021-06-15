@@ -24,9 +24,30 @@ func startGinService() {
 		c.JSON(http.StatusOK, stats.Report())
 	})
 	r.GET("/health", API_HealthCheck)
-	r.GET("/getlistportalshieldingaddress", API_GetListPortalShieldingAddress)
+	r.GET("/checkportalshieldingaddressexisted", API_CheckPortalShieldingAddressExisted)
 	r.POST("/addportalshieldingaddress", API_AddPortalShieldingAddress)
-	r.Run("0.0.0.0:" + strconv.Itoa(serviceCfg.APIPort))
+	r.GET("/getlistportalshieldingaddress", API_GetListPortalShieldingAddress)
+	err := r.Run("0.0.0.0:" + strconv.Itoa(serviceCfg.APIPort))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func API_CheckPortalShieldingAddressExisted(c *gin.Context) {
+	incAddress := c.Query("incaddress")
+	btcAddress := c.Query("btcaddress")
+
+	// check unique
+	isExisted, err := DBCheckPortalAddressExisted(incAddress, btcAddress)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, API_respond{
+		Result: isExisted,
+		Error:  nil,
+	})
 }
 
 func API_AddPortalShieldingAddress(c *gin.Context) {
@@ -34,25 +55,35 @@ func API_AddPortalShieldingAddress(c *gin.Context) {
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
 	}
 
 	// check unique
 	isExisted, err := DBCheckPortalAddressExisted(req.IncAddress, req.BTCAddress)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
 	}
 	if isExisted {
 		msg := "Record has already been inserted"
 		c.JSON(http.StatusOK, API_respond{
-			Result: false,
+			Result: nil,
 			Error:  &msg,
 		})
+		return
+	}
+
+	err = importBTCAddressToFullNode(req.BTCAddress)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
 	}
 
 	item := NewPortalAddressData(req.IncAddress, req.BTCAddress)
 	err = DBSavePortalAddress(*item)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
 	}
 
 	c.JSON(http.StatusOK, API_respond{
@@ -66,11 +97,13 @@ func API_GetListPortalShieldingAddress(c *gin.Context) {
 	toTimeStamp, err2 := strconv.ParseInt(c.Query("to"), 10, 64)
 	if err1 != nil || err2 != nil {
 		c.JSON(http.StatusBadRequest, buildGinErrorRespond(fmt.Errorf("Invalid parameters")))
+		return
 	}
 
 	list, err := DBGetPortalAddressesByTimestamp(fromTimeStamp, toTimeStamp)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
 	}
 
 	c.JSON(http.StatusOK, API_respond{

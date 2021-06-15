@@ -1,5 +1,11 @@
 {
     "apiport":9001,
 	"mongo":"mongodb://root:example@1.2.3.4:27017",
-	"mongodb":""
+	"mongodb":"",
+	"btcfullnode": {
+		"address": "127.0.0.1:8443",
+		"user": "admin",
+		"pass": "admin",
+		"https": false
+	}
 }

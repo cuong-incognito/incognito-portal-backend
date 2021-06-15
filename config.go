@@ -9,10 +9,18 @@ import (
 var ENABLE_PROFILER bool
 var serviceCfg Config
 
+type BTCFullnodeConfig struct {
+	Address  string `json:"address"`
+	User     string `json:"user"`
+	Password string `json:"pass"`
+	Https    bool   `json:"https"`
+}
+
 type Config struct {
-	APIPort      int    `json:"apiport"`
-	MongoAddress string `json:"mongo"`
-	MongoDB      string `json:"mongodb"`
+	APIPort      int               `json:"apiport"`
+	MongoAddress string            `json:"mongo"`
+	MongoDB      string            `json:"mongodb"`
+	BTCFullnode  BTCFullnodeConfig `json:"btcfullnode"`
 }
 
 func readConfigAndArg() {
