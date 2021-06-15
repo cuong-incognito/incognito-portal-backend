@@ -27,6 +27,7 @@ func startGinService() {
 	r.GET("/checkportalshieldingaddressexisted", API_CheckPortalShieldingAddressExisted)
 	r.POST("/addportalshieldingaddress", API_AddPortalShieldingAddress)
 	r.GET("/getlistportalshieldingaddress", API_GetListPortalShieldingAddress)
+	r.GET("/getestimatedunshieldingfee", API_GetEstimatedUnshieldingFee)
 	err := r.Run("0.0.0.0:" + strconv.Itoa(serviceCfg.APIPort))
 	if err != nil {
 		panic(err)
@@ -40,7 +41,7 @@ func API_CheckPortalShieldingAddressExisted(c *gin.Context) {
 	// check unique
 	isExisted, err := DBCheckPortalAddressExisted(incAddress, btcAddress)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(err))
 		return
 	}
 
@@ -61,7 +62,7 @@ func API_AddPortalShieldingAddress(c *gin.Context) {
 	// check unique
 	isExisted, err := DBCheckPortalAddressExisted(req.IncAddress, req.BTCAddress)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(err))
 		return
 	}
 	if isExisted {
@@ -75,14 +76,14 @@ func API_AddPortalShieldingAddress(c *gin.Context) {
 
 	err = importBTCAddressToFullNode(req.BTCAddress)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(err))
 		return
 	}
 
 	item := NewPortalAddressData(req.IncAddress, req.BTCAddress)
 	err = DBSavePortalAddress(*item)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(err))
 		return
 	}
 
@@ -102,7 +103,7 @@ func API_GetListPortalShieldingAddress(c *gin.Context) {
 
 	list, err := DBGetPortalAddressesByTimestamp(fromTimeStamp, toTimeStamp)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(err))
 		return
 	}
 
@@ -112,19 +113,46 @@ func API_GetListPortalShieldingAddress(c *gin.Context) {
 	})
 }
 
+func API_GetEstimatedUnshieldingFee(c *gin.Context) {
+	vBytePerInput := 192.25
+	vBytePerOutput := 43.0
+	vByteOverhead := 10.75
+
+	feeRWLock.RLock()
+	defer feeRWLock.RUnlock()
+	if feePerVByte < 0 {
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(fmt.Errorf("Could not get fee from external API")))
+		return
+	}
+	estimatedFee := feePerVByte * (2.0*vBytePerInput + 2.0*vBytePerOutput + vByteOverhead)
+	estimatedFee *= 1.15 // overpay
+
+	c.JSON(http.StatusOK, API_respond{
+		Result: estimatedFee,
+		Error:  nil,
+	})
+}
+
 func API_HealthCheck(c *gin.Context) {
 	//ping pong vs mongo
 	status := "healthy"
 	mongoStatus := "connected"
+	btcNodeStatus := "connected"
 	_, cd, _, _ := mgm.DefaultConfigs()
 	err := cd.Ping(context.Background(), nil)
 	if err != nil {
 		status = "unhealthy"
 		mongoStatus = "disconnected"
 	}
+	err = btcClient.Ping()
+	if err != nil {
+		status = "unhealthy"
+		btcNodeStatus = "disconnected"
+	}
 	c.JSON(http.StatusOK, gin.H{
-		"status": status,
-		"mongo":  mongoStatus,
+		"status":      status,
+		"mongo":       mongoStatus,
+		"btcfullnode": btcNodeStatus,
 	})
 }
 
