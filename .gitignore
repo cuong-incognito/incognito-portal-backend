@@ -1,9 +1,4 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+portal_backend
 
 # Test binary, built with `go test -c`
 *.test
@@ -15,6 +10,4 @@
 vendor/
 .idea/
 cfg.json
-cfg-synker-staging.json
-cfg-query-staging.json
 deploy_dev.sh
