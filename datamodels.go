@@ -14,7 +14,7 @@ type PortalAddressData struct {
 }
 
 func NewPortalAddressData(incAddress, btcAddress string) *PortalAddressData {
-	timestamp := time.Now().UnixNano()
+	timestamp := time.Now().Unix()
 	return &PortalAddressData{
 		IncAddress: incAddress, BTCAddress: btcAddress, TimeStamp: timestamp,
 	}
