@@ -59,6 +59,12 @@ func API_AddPortalShieldingAddress(c *gin.Context) {
 		return
 	}
 
+	err = isValidPortalAddressPair(req.IncAddress, req.BTCAddress)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(err))
+		return
+	}
+
 	// check unique
 	isExisted, err := DBCheckPortalAddressExisted(req.IncAddress, req.BTCAddress)
 	if err != nil {
