@@ -21,11 +21,9 @@ func NewPortalAddressData(incAddress, btcAddress string) *PortalAddressData {
 }
 
 func (model *PortalAddressData) Creating() error {
-	// Call the DefaultModel Creating hook
-	if err := model.DefaultModel.Creating(); err != nil {
-		return err
-	}
-
+	curTime := time.Now().UTC()
+	model.DefaultModel.DateFields.CreatedAt = curTime
+	model.DefaultModel.DateFields.UpdatedAt = curTime
 	return nil
 }
 
