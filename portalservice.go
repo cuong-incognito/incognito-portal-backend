@@ -61,7 +61,7 @@ func initPortalService() {
 				feeRWLock.Lock()
 				defer func() {
 					feeRWLock.Unlock()
-					time.Sleep(1 * time.Minute)
+					time.Sleep(3 * time.Minute)
 				}()
 				if err != nil {
 					feePerVByte = -1
