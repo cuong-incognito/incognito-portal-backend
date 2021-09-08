@@ -41,11 +41,15 @@ func convertBTCAmtToPBTCAmt(btcAmt float64) uint64 {
 func getStatusFromConfirmation(confirmationBlks int) (status int, statusStr, statusDetail string) {
 	if confirmationBlks > 0 {
 		status = ShieldStatusProcessing
-		statusDetail = "The shielding transaction is confirmed with " +
-			strconv.Itoa(confirmationBlks) + " blocks."
+		statusDetail = "The shielding transaction is confirmed with " + strconv.Itoa(confirmationBlks)
+		if confirmationBlks == 1 {
+			statusDetail += " block."
+		} else {
+			statusDetail += " blocks."
+		}
 	} else {
 		status = ShieldStatusPending
-		statusDetail = "The shielding transaction is waiting to confirm."
+		statusDetail = "The shielding transaction is waiting for confirmation."
 	}
 	statusStr = ShieldStatusStr[status]
 	return
@@ -77,7 +81,7 @@ func ParseUTXOsToPortalShieldHistory(
 			Status:           status,
 			StatusStr:        statusStr,
 			StatusDetail:     statusDetail,
-			Time:             tx.Time,
+			Time:             tx.Time * 1000,  // convert to msec
 			TxType:           ShieldTxType,
 			TxTypeStr:        ShieldTxTypeStr,
 		}
