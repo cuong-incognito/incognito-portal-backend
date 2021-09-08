@@ -1,4 +1,4 @@
-FROM golang:1.16.2-stretch AS build
+FROM golang:1.17-buster AS build
 
 WORKDIR /app
 
@@ -8,13 +8,13 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -tags=jsoniter -ldflags "-linkmode external -extldflags -static" -o coinservice
+RUN go build -tags=jsoniter -ldflags "-linkmode external -extldflags -static" -o portal-backend
 
 
 FROM alpine
 
 WORKDIR /app
 
-COPY --from=build /app/coinservice /app/coinservice
+COPY --from=build /app/portal-backend /app/portal-backend
 
-CMD [ "./coinservice" ]
+CMD [ "./portal-backend" ]

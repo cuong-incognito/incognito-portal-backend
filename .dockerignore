@@ -6,3 +6,4 @@ chain-data
 chain.log.*
 nohup.out
 chain.log
+/.idea

@@ -71,7 +71,11 @@ func DBSavePortalAddress(item PortalAddressData) error {
 	startTime := time.Now()
 	ctx, _ := context.WithTimeout(context.Background(), time.Duration(5)*DB_OPERATION_TIMEOUT)
 
-	_, err := mgm.Coll(&PortalAddressData{}).InsertOne(ctx, item)
+	err := item.Creating()
+	if err != nil {
+		return err
+	}
+	_, err = mgm.Coll(&PortalAddressData{}).InsertOne(ctx, item)
 	if err != nil {
 		log.Printf("failed to insert portal address %v in %v", item, time.Since(startTime))
 		return err
