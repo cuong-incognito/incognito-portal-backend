@@ -94,3 +94,16 @@ func DBGetPortalAddressesByTimestamp(fromTimeStamp int64, toTimeStamp int64) ([]
 
 	return list, nil
 }
+
+func DBGetBTCAddressByIncAddress(incAddress string) (string, error) {
+	startTime := time.Now()
+
+	filter := bson.M{"incaddress": bson.M{operator.Eq: incAddress}}
+	var result PortalAddressData
+	err := mgm.Coll(&PortalAddressData{}).First(filter, &result)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("get btc address by inc address in %v", time.Since(startTime))
+	return result.BTCAddress, nil
+}

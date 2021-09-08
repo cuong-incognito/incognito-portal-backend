@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,6 +30,8 @@ func startGinService() {
 	r.POST("/addportalshieldingaddress", API_AddPortalShieldingAddress)
 	r.GET("/getlistportalshieldingaddress", API_GetListPortalShieldingAddress)
 	r.GET("/getestimatedunshieldingfee", API_GetEstimatedUnshieldingFee)
+	r.GET("/getshieldhistory", API_GetShieldHistory)
+	r.GET("/getshieldhistorybyexternaltxid", API_GetShieldHistoryByExternalTxID)
 	err := r.Run("0.0.0.0:" + strconv.Itoa(serviceCfg.APIPort))
 	if err != nil {
 		panic(err)
@@ -131,6 +135,89 @@ func API_GetEstimatedUnshieldingFee(c *gin.Context) {
 		Result: estimatedFee,
 		Error:  nil,
 	})
+}
+
+func API_GetShieldHistory(c *gin.Context) {
+	incAddress := c.Query("incaddress")
+	tokenID := c.Query("tokenid")
+	if tokenID != BTCTokenID {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(fmt.Errorf(
+			"TokenID is not a portal token %v", tokenID)))
+		return
+	}
+
+	btcAddressStr, err := DBGetBTCAddressByIncAddress(incAddress)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(fmt.Errorf(
+			"Could not get btc address by inc address %v from DB", incAddress)))
+		return
+	}
+
+	btcAddress, err := btcutil.DecodeAddress(btcAddressStr, BTCChainCfg)
+	if err != nil {
+		log.Printf(fmt.Sprintf("Could not decode address %v - with err: %v", btcAddressStr, err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(
+			fmt.Errorf("Could not decode address %v - with err: %v", btcAddressStr, err)))
+		return
+	}
+
+	utxos, err := btcClient.ListUnspentMinMaxAddresses(BTCMinConf, BTCMaxConf, []btcutil.Address{btcAddress})
+	if err != nil {
+		log.Printf(fmt.Sprintf("Could not get utxos of address %v - with err: %v", btcAddressStr, err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(
+			fmt.Errorf("Could not get utxos of address %v - with err: %v", btcAddressStr, err)))
+		return
+	}
+
+	histories, err := ParseUTXOsToPortalShieldHistory(utxos, incAddress)
+	if err != nil {
+		log.Printf(fmt.Sprintf("Could not get histories from utxos of address %v - with err: %v", btcAddressStr, err))
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(
+			fmt.Errorf("Could not get histories from utxos of address  %v - with err: %v", btcAddressStr, err)))
+		return
+	}
+
+	c.JSON(http.StatusOK, API_respond{
+		Result: histories,
+		Error:  nil,
+	})
+}
+
+func API_GetShieldHistoryByExternalTxID(c *gin.Context) {
+	externalTxID := c.Query("externaltxid")
+	tokenID := c.Query("tokenid")
+	if tokenID != BTCTokenID {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(fmt.Errorf(
+			"TokenID is not a portal token %v", tokenID)))
+		return
+	}
+
+	txIDHash, err := chainhash.NewHashFromStr(externalTxID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, buildGinErrorRespond(
+			fmt.Errorf("Invalid external txID %v - with err: %v", externalTxID, err)))
+		return
+	}
+
+	res, err := btcClient.GetTransaction(txIDHash)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(
+			fmt.Errorf("Could not get external txID %v - with err: %v", externalTxID, err)))
+		return
+	}
+
+	status, statusStr, statusDetail := getStatusFromConfirmation(int(res.Confirmations))
+	history := PortalShieldHistory{
+		ExternalTxID:     externalTxID,
+		Status:           status,
+		StatusStr:        statusStr,
+		StatusDetail:     statusDetail,
+	}
+	c.JSON(http.StatusOK, API_respond{
+		Result: history,
+		Error:  nil,
+	})
+
 }
 
 func API_HealthCheck(c *gin.Context) {
