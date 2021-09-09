@@ -3,8 +3,8 @@ module main
 go 1.13
 
 require (
-	github.com/btcsuite/btcd v0.22.0-beta
-	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
+	github.com/btcsuite/btcd v0.21.0-beta
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/ebfe/keccak v0.0.0-20150115210727-5cc570678d1b // indirect
 	github.com/ethereum/go-ethereum v1.10.3 // indirect
 	github.com/gin-contrib/gzip v0.0.3
