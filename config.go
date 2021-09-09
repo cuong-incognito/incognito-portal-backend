@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
+	"github.com/btcsuite/btcd/chaincfg"
 	"io/ioutil"
 	"log"
 )
 
 var ENABLE_PROFILER bool
 var serviceCfg Config
+var BTCChainCfg *chaincfg.Params
+var BTCTokenID string
 
 type BTCFullnodeConfig struct {
 	Address  string `json:"address"`
@@ -21,6 +24,7 @@ type Config struct {
 	MongoAddress string            `json:"mongo"`
 	MongoDB      string            `json:"mongodb"`
 	BTCFullnode  BTCFullnodeConfig `json:"btcfullnode"`
+	Net          string            `json:"net"`
 }
 
 func readConfigAndArg() {
@@ -47,6 +51,15 @@ func readConfigAndArg() {
 	}
 	if tempCfg.MongoDB == "" {
 		tempCfg.MongoDB = DefaultMongoDB
+	}
+	if tempCfg.Net == "test" {
+		BTCChainCfg = &chaincfg.TestNet3Params
+		BTCTokenID = TESTNET_BTC_ID
+	} else if tempCfg.Net == "main" {
+		BTCChainCfg = &chaincfg.MainNetParams
+		BTCTokenID = MAINNET_BTC_ID
+	} else {
+		panic("Invalid config network Bitcoin")
 	}
 	ENABLE_PROFILER = *argProfiler
 	serviceCfg = tempCfg

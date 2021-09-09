@@ -65,6 +65,7 @@ func initPortalService() {
 	}
 
 	go func() {
+		feePerVByte = -1
 		for {
 			func() {
 				response, err := http.Get("https://api.blockcypher.com/v1/btc/main")
@@ -74,18 +75,22 @@ func initPortalService() {
 					time.Sleep(10 * time.Minute)
 				}()
 				if err != nil {
-					feePerVByte = -1
+					fmt.Printf("Error 1: %v\n", err)
 					return
 				}
 				responseData, err := ioutil.ReadAll(response.Body)
 				if err != nil {
-					feePerVByte = -1
+					fmt.Printf("Error 2: %v\n", err)
+					return
+				}
+				if response.StatusCode != 200 {
+					fmt.Printf("Response Status Code: %v, Body: %v\n", response.StatusCode, string(responseData[:]))
 					return
 				}
 				var responseBody BlockCypherFeeResponse
 				err = json.Unmarshal(responseData, &responseBody)
 				if err != nil {
-					feePerVByte = -1
+					fmt.Printf("Error 3: %v\n", err)
 					return
 				}
 				feePerVByte = float64(responseBody.MediumFee) / 1024
