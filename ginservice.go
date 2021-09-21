@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
-	"log"
-	"net/http"
-	"strconv"
-
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/kamva/mgm/v3"
 	stats "github.com/semihalev/gin-stats"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 func startGinService() {
@@ -167,6 +166,7 @@ func API_GetShieldHistory(c *gin.Context) {
 		return
 	}
 
+	// time1 := time.Now()
 	utxos, err := btcClient.ListUnspentMinMaxAddresses(BTCMinConf, BTCMaxConf, []btcutil.Address{btcAddress})
 	if err != nil {
 		log.Printf(fmt.Sprintf("Could not get utxos of address %v - with err: %v", btcAddressStr, err))
@@ -174,7 +174,9 @@ func API_GetShieldHistory(c *gin.Context) {
 			fmt.Errorf("Could not get utxos of address %v - with err: %v", btcAddressStr, err)))
 		return
 	}
+	// log.Printf("Time call api btc fullnode: %v\n", time.Since(time1))
 
+	// time2 := time.Now()
 	histories, err := ParseUTXOsToPortalShieldHistory(utxos, incAddress)
 	if err != nil {
 		log.Printf(fmt.Sprintf("Could not get histories from utxos of address %v - with err: %v", btcAddressStr, err))
@@ -182,6 +184,7 @@ func API_GetShieldHistory(c *gin.Context) {
 			fmt.Errorf("Could not get histories from utxos of address  %v - with err: %v", btcAddressStr, err)))
 		return
 	}
+	// log.Printf("Time parsing: %v\n", time.Since(time2))
 
 	c.JSON(http.StatusOK, API_respond{
 		Result: histories,
@@ -212,12 +215,11 @@ func API_GetShieldHistoryByExternalTxID(c *gin.Context) {
 		return
 	}
 
-	status, statusStr, statusDetail := getStatusFromConfirmation(int(res.Confirmations))
+	status := getStatusFromConfirmation(int(res.Confirmations))
 	history := PortalShieldHistory{
-		ExternalTxID:     externalTxID,
-		Status:           status,
-		StatusStr:        statusStr,
-		StatusDetail:     statusDetail,
+		ExternalTxID:  externalTxID,
+		Status:        status,
+		Confirmations: res.Confirmations,
 	}
 	c.JSON(http.StatusOK, API_respond{
 		Result: history,
