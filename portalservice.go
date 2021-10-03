@@ -3,8 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"sync"
 	"time"
 
@@ -67,36 +65,12 @@ func initPortalService() {
 	go func() {
 		for {
 			func() {
-				response, err := http.Get("https://api.blockcypher.com/v1/btc/main")
 				feeRWLock.Lock()
 				defer func() {
 					feeRWLock.Unlock()
 					time.Sleep(10 * time.Minute)
 				}()
-				if err != nil {
-					feePerVByte = -1
-					fmt.Printf("Error 1: %v\n", err)
-					return
-				}
-				responseData, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					feePerVByte = -1
-					fmt.Printf("Error 2: %v\n", err)
-					return
-				}
-				if response.StatusCode != 200 {
-					feePerVByte = -1
-					fmt.Printf("Response Status Code: %v, Body: %v\n", response.StatusCode, string(responseData[:]))
-					return
-				}
-				var responseBody BlockCypherFeeResponse
-				err = json.Unmarshal(responseData, &responseBody)
-				if err != nil {
-					feePerVByte = -1
-					fmt.Printf("Error 3: %v\n", err)
-					return
-				}
-				feePerVByte = float64(responseBody.MediumFee) / 1024
+				feePerVByte = 6
 			}()
 		}
 	}()
