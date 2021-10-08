@@ -3,10 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"sync"
-	"time"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -14,17 +10,15 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"github.com/btcsuite/btcutil/hdkeychain"
+	resty "github.com/go-resty/resty/v2"
 	"github.com/incognitochain/go-incognito-sdk-v2/wallet"
 )
 
 var btcClient *rpcclient.Client
-var feeRWLock sync.RWMutex
-var feePerVByte float64 // satoshi / byte
 
-type BlockCypherFeeResponse struct {
-	HighFee   uint `json:"high_fee_per_kb"`
-	MediumFee uint `json:"medium_fee_per_kb"`
-	LowFee    uint `json:"low_fee_per_kb"`
+type BlockchainFeeResponse struct {
+	Result float64
+	Error  error
 }
 
 var masterPubKeys = [][]byte{
@@ -58,39 +52,6 @@ func initPortalService() {
 		panic(err)
 	}
 
-	go func() {
-		feePerVByte = -1
-		for {
-			func() {
-				response, err := http.Get("https://api.blockcypher.com/v1/btc/main")
-				feeRWLock.Lock()
-				defer func() {
-					feeRWLock.Unlock()
-					time.Sleep(3 * time.Minute)
-				}()
-				if err != nil {
-					fmt.Printf("Error 1: %v\n", err)
-					return
-				}
-				responseData, err := ioutil.ReadAll(response.Body)
-				if err != nil {
-					fmt.Printf("Error 2: %v\n", err)
-					return
-				}
-				if response.StatusCode != 200 {
-					fmt.Printf("Response Status Code: %v, Body: %v\n", response.StatusCode, string(responseData[:]))
-					return
-				}
-				var responseBody BlockCypherFeeResponse
-				err = json.Unmarshal(responseData, &responseBody)
-				if err != nil {
-					fmt.Printf("Error 3: %v\n", err)
-					return
-				}
-				feePerVByte = float64(responseBody.MediumFee) / 1024
-			}()
-		}
-	}()
 }
 
 func importBTCAddressToFullNode(btcAddress string) error {
@@ -173,4 +134,24 @@ func isValidPortalAddressPair(incAddress string, btcAddress string) error {
 	}
 
 	return nil
+}
+
+func getBitcoinFee() (float64, error) {
+	client := resty.New()
+
+	response, err := client.R().
+		Get(serviceCfg.BlockchainFeeHost)
+
+	if err != nil {
+		return 0, err
+	}
+	if response.StatusCode() != 200 {
+		return 0, fmt.Errorf("Response status code: %v", response.StatusCode())
+	}
+	var responseBody BlockchainFeeResponse
+	err = json.Unmarshal(response.Body(), &responseBody)
+	if err != nil {
+		return 0, fmt.Errorf("Could not parse response: %v", response.Body())
+	}
+	return responseBody.Result, nil
 }
