@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/btcsuite/btcd/chaincfg"
 	"io/ioutil"
 	"log"
+
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 var ENABLE_PROFILER bool
@@ -20,11 +21,12 @@ type BTCFullnodeConfig struct {
 }
 
 type Config struct {
-	APIPort      int               `json:"apiport"`
-	MongoAddress string            `json:"mongo"`
-	MongoDB      string            `json:"mongodb"`
-	BTCFullnode  BTCFullnodeConfig `json:"btcfullnode"`
-	Net          string            `json:"net"`
+	APIPort           int               `json:"apiport"`
+	MongoAddress      string            `json:"mongo"`
+	MongoDB           string            `json:"mongodb"`
+	BTCFullnode       BTCFullnodeConfig `json:"btcfullnode"`
+	BlockchainFeeHost string            `json:"blockchainfee"`
+	Net               string            `json:"net"`
 }
 
 func readConfigAndArg() {

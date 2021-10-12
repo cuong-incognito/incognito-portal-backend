@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/kamva/mgm/v3"
 	stats "github.com/semihalev/gin-stats"
-	"log"
-	"net/http"
-	"strconv"
 )
 
 func startGinService() {
@@ -127,10 +128,9 @@ func API_GetEstimatedUnshieldingFee(c *gin.Context) {
 	vBytePerOutput := 43.0
 	vByteOverhead := 10.75
 
-	feeRWLock.RLock()
-	defer feeRWLock.RUnlock()
-	if feePerVByte < 0 {
-		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(fmt.Errorf("Could not get fee from external API")))
+	feePerVByte, err := getBitcoinFee()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(fmt.Errorf("Could not get bitcoin fee, error: %v", err)))
 		return
 	}
 	estimatedFee := feePerVByte * (2.0*vBytePerInput + 2.0*vBytePerOutput + vByteOverhead)

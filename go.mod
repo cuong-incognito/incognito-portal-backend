@@ -9,6 +9,7 @@ require (
 	github.com/ethereum/go-ethereum v1.10.3 // indirect
 	github.com/gin-contrib/gzip v0.0.3
 	github.com/gin-gonic/gin v1.6.3
+	github.com/go-resty/resty/v2 v2.6.0
 	github.com/incognitochain/go-incognito-sdk-v2 v0.0.0-20210617022413-f15fbac13f30
 	github.com/json-iterator/go v1.1.10
 	github.com/kamva/mgm/v3 v3.1.0
