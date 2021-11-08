@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/http"
-	"strconv"
-
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/kamva/mgm/v3"
 	stats "github.com/semihalev/gin-stats"
+	"go.mongodb.org/mongo-driver/mongo"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 func startGinService() {
@@ -153,6 +153,13 @@ func API_GetShieldHistory(c *gin.Context) {
 
 	btcAddressStr, err := DBGetBTCAddressByIncAddress(incAddress)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusOK, API_respond{
+				Result: []PortalShieldHistory{},
+				Error:  nil,
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, buildGinErrorRespond(fmt.Errorf(
 			"Could not get btc address by inc address %v from DB", incAddress)))
 		return
